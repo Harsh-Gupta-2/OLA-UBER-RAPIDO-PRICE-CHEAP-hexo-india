@@ -124,3 +124,26 @@ export function suggestResolution(zoom: number): number {
   if (zoom <= 15) return 9;
   return 10;
 }
+
+export interface EdgeInfo {
+  neighbourId: string;
+  distanceToEdgeM: number;
+  direction: string;
+}
+
+/** Nearest adjacent hexagon to a point inside `cellId`, and approx metres to the shared edge (perpendicular-bisector estimate). */
+export function edgeInfo(cellId: string, point: LatLng): EdgeInfo | null {
+  const own = cellCenter(cellId);
+  const dOwn = haversine(point, own);
+  let best: { id: string; d: number; c: LatLng } | null = null;
+  for (const id of gridDisk(cellId, 1)) {
+    if (id === cellId) continue;
+    const c = cellCenter(id);
+    const d = haversine(point, c);
+    if (!best || d < best.d) best = { id, d, c };
+  }
+  if (!best) return null;
+  const sep = haversine(own, best.c);
+  const dist = sep > 0 ? Math.max(0, (best.d ** 2 - dOwn ** 2) / (2 * sep)) : 0;
+  return { neighbourId: best.id, distanceToEdgeM: dist, direction: compassDirection(bearing(point, best.c)) };
+}

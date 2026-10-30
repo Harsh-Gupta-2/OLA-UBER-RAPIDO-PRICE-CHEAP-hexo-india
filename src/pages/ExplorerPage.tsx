@@ -9,6 +9,7 @@ import ResolutionSelector from "../components/Hexagon/ResolutionSelector";
 import HexInfoPanel from "../components/Hexagon/HexInfoPanel";
 import NeighbourList from "../components/Hexagon/NeighbourList";
 import LocationInput from "../components/Location/LocationInput";
+import BetterNearby from "../components/Pricing/BetterNearby";
 import SampleBanner from "../components/Pricing/SampleBanner";
 import PriceList from "../components/Pricing/PriceList";
 import AddPriceForm from "../components/Pricing/AddPriceForm";
@@ -193,6 +194,9 @@ export default function ExplorerPage() {
           <div className="space-y-4 pt-2" role="tabpanel">
             {tab === "hex" && (
               <>
+                {userLoc && userCellId && productId && (
+                  <BetterNearby userLoc={userLoc} userCellId={userCellId} summaries={cmp.summaries} units={settings.units} />
+                )}
                 <ResolutionSelector resolution={resolution} suggested={suggested} units={settings.units} onChange={setResolution} />
                 {info ? (
                   <HexInfoPanel info={info} neighbourCount={neighbours.length} isUserCell={selectedId === userCellId} userLoc={userLoc} records={cellRecords} units={settings.units} />

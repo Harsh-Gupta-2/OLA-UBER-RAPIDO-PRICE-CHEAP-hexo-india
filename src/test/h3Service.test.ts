@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getPentagons, latLngToCell } from "h3-js";
 import {
-  cellBoundary, cellCenter, cellsInBounds, getNeighbours, latLngToCellId, neighbourIds, safeGridDistance,
+  cellBoundary, cellCenter, edgeInfo, cellsInBounds, getNeighbours, latLngToCellId, neighbourIds, safeGridDistance,
 } from "../services/h3Service";
 import { isValidH3Id, validateLatLng } from "../utils/validation";
 import { bearing, compassDirection, haversine } from "../utils/distance";
@@ -42,6 +42,19 @@ describe("h3Service", () => {
     const small = { south: 25.44, west: 78.56, north: 25.46, east: 78.58 };
     expect(cellsInBounds(small, 9)!.length).toBeGreaterThan(0);
     expect(cellsInBounds({ south: 8, west: 68, north: 37, east: 97 }, 9)).toBeNull();
+  });
+});
+
+describe("edgeInfo", () => {
+  it("centre is far from edge; near-edge point is close", () => {
+    const id = latLngToCellId(JH.lat, JH.lng, 9);
+    const c = cellCenter(id);
+    const mid = edgeInfo(id, c)!;
+    const b = cellBoundary(id);
+    const edgeMid = { lat: (b[0][0] + b[1][0]) / 2, lng: (b[0][1] + b[1][1]) / 2 };
+    const near = edgeInfo(id, { lat: c.lat + (edgeMid.lat - c.lat) * 0.95, lng: c.lng + (edgeMid.lng - c.lng) * 0.95 })!;
+    expect(near.distanceToEdgeM).toBeLessThan(mid.distanceToEdgeM);
+    expect(near.distanceToEdgeM).toBeLessThan(15);
   });
 });
 
