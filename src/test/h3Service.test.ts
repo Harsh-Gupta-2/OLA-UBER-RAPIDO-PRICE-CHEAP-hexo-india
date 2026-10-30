@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getPentagons, latLngToCell } from "h3-js";
 import {
-  cellBoundary, cellCenter, cellsInBounds, getNeighbours, latLngToCellId, neighbourIds, safeGridDistance,
+  cellBoundary, cellCenter, edgeInfo, cellsInBounds, getNeighbours, latLngToCellId, neighbourIds, safeGridDistance,
 } from "../services/h3Service";
 import { isValidH3Id, validateLatLng } from "../utils/validation";
 import { bearing, compassDirection, haversine } from "../utils/distance";
@@ -45,6 +45,19 @@ describe("h3Service", () => {
   });
 });
 
+describe("edgeInfo", () => {
+  it("centre is far from edge; near-edge point is close", () => {
+    const id = latLngToCellId(JH.lat, JH.lng, 9);
+    const c = cellCenter(id);
+    const mid = edgeInfo(id, c)!;
+    const b = cellBoundary(id);
+    const edgeMid = { lat: (b[0][0] + b[1][0]) / 2, lng: (b[0][1] + b[1][1]) / 2 };
+    const near = edgeInfo(id, { lat: c.lat + (edgeMid.lat - c.lat) * 0.95, lng: c.lng + (edgeMid.lng - c.lng) * 0.95 })!;
+    expect(near.distanceToEdgeM).toBeLessThan(mid.distanceToEdgeM);
+    expect(near.distanceToEdgeM).toBeLessThan(15);
+  });
+});
+
 describe("validation", () => {
   it("validates coordinates", () => {
     expect(validateLatLng(91, 0).valid).toBe(false);
@@ -83,5 +96,15 @@ describe("maps url", () => {
       "https://www.google.com/maps/dir/?api=1&origin=25,78&destination=25.1,78.2&travelmode=walking",
     );
     expect(googleMapsWalkUrl(dest)).toBe("https://www.google.com/maps/dir/?api=1&destination=25.1,78.2&travelmode=walking");
+  });
+});
+
+import { shareLinkUrl, shareText } from "../utils/mapsLinks";
+describe("share", () => {
+  it("builds link and text", () => {
+    expect(shareLinkUrl({ lat: 25.4484, lng: 78.5685 }, 9, "https://x.io/app/")).toBe("https://x.io/app/#/?lat=25.448400&lng=78.568500&res=9");
+    const t = shareText({ lat: 25.4484, lng: 78.5685 }, "893d8381507ffff", "https://x.io/app/");
+    expect(t).toContain("https://www.google.com/maps?q=25.448400,78.568500");
+    expect(t).toContain("H3 893d8381507ffff");
   });
 });

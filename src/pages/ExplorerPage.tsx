@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getResolution, latLngToCell } from "h3-js";
+import { useSearchParams } from "react-router-dom";
 import HexMap, { type FlyRequest } from "../components/Map/HexMap";
 import Legend from "../components/Map/Legend";
 import Header from "../components/Layout/Header";
@@ -8,7 +9,9 @@ import SettingsDialog from "../components/Layout/SettingsDialog";
 import ResolutionSelector from "../components/Hexagon/ResolutionSelector";
 import HexInfoPanel from "../components/Hexagon/HexInfoPanel";
 import NeighbourList from "../components/Hexagon/NeighbourList";
+import ShareLocation from "../components/Location/ShareLocation";
 import LocationInput from "../components/Location/LocationInput";
+import BetterNearby from "../components/Pricing/BetterNearby";
 import SampleBanner from "../components/Pricing/SampleBanner";
 import PriceList from "../components/Pricing/PriceList";
 import AddPriceForm from "../components/Pricing/AddPriceForm";
@@ -50,6 +53,7 @@ export default function ExplorerPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [snap, setSnap] = useSnap("half");
 
+  const [params] = useSearchParams();
   const geo = useGeolocation();
   const prices = usePrices();
   const products = useProducts(prices.records);
@@ -128,6 +132,19 @@ export default function ExplorerPage() {
     setTab("hex");
   };
 
+  useEffect(() => {
+    const lat = params.get("lat"), lng = params.get("lng");
+    if (lat === null || lng === null) return;
+    const p = { lat: Number(lat), lng: Number(lng) };
+    if (!validateLatLng(p.lat, p.lng).valid) return;
+    const r = Number(params.get("res"));
+    const res = Number.isInteger(r) && r >= 0 && r <= 15 ? r : resolution;
+    setResolution(res);
+    goTo(p, res);
+    // run once for the initial shared link
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const clearAll = async () => {
     clearAllLocalData();
     setSettings({ units: "metric", defaultRes: 9 });
@@ -193,9 +210,15 @@ export default function ExplorerPage() {
           <div className="space-y-4 pt-2" role="tabpanel">
             {tab === "hex" && (
               <>
+                {userLoc && userCellId && productId && (
+                  <BetterNearby userLoc={userLoc} userCellId={userCellId} summaries={cmp.summaries} units={settings.units} />
+                )}
                 <ResolutionSelector resolution={resolution} suggested={suggested} units={settings.units} onChange={setResolution} />
                 {info ? (
+                  <>
                   <HexInfoPanel info={info} neighbourCount={neighbours.length} isUserCell={selectedId === userCellId} userLoc={userLoc} records={cellRecords} units={settings.units} />
+                  <ShareLocation point={info.center} cellId={info.id} resolution={resolution} label="Share this hexagon" heading="Hexagon centre" />
+                  </>
                 ) : (
                   <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
                     Tap any hexagon on the map, search coordinates, or use your location. You can explore without sharing location.
@@ -258,6 +281,7 @@ export default function ExplorerPage() {
                   {geo.status === "loading" ? "Locating…" : "📍 Use My Location"}
                 </button>
                 {geo.message && <p role="alert" className="text-sm text-red-700">{geo.message}</p>}
+                {userLoc && <ShareLocation point={userLoc} cellId={userCellId} resolution={resolution} />}
                 {userLoc && <p className="text-xs">Your position: {userLoc.lat.toFixed(6)}, {userLoc.lng.toFixed(6)}. Stays in your browser; nothing is uploaded.</p>}
                 <LocationInput onSubmit={manual} />
               </>
