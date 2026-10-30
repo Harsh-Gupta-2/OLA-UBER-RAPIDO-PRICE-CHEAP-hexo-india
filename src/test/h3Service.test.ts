@@ -98,3 +98,13 @@ describe("maps url", () => {
     expect(googleMapsWalkUrl(dest)).toBe("https://www.google.com/maps/dir/?api=1&destination=25.1,78.2&travelmode=walking");
   });
 });
+
+import { shareLinkUrl, shareText } from "../utils/mapsLinks";
+describe("share", () => {
+  it("builds link and text", () => {
+    expect(shareLinkUrl({ lat: 25.4484, lng: 78.5685 }, 9, "https://x.io/app/")).toBe("https://x.io/app/#/?lat=25.448400&lng=78.568500&res=9");
+    const t = shareText({ lat: 25.4484, lng: 78.5685 }, "893d8381507ffff", "https://x.io/app/");
+    expect(t).toContain("https://www.google.com/maps?q=25.448400,78.568500");
+    expect(t).toContain("H3 893d8381507ffff");
+  });
+});
